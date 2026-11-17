@@ -191,7 +191,7 @@ public final class StoryGui implements Listener {
 
     private void finish(Player player, Holder holder) {
         holder.finished = true;
-        Bukkit.getScheduler().runTask(plugin, player::closeInventory);
+        Bukkit.getScheduler().runTask(plugin, () -> player.closeInventory());
         if (holder.preview) {
             return;
         }
