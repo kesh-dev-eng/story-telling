@@ -31,8 +31,6 @@ public final class GuideSession {
     private Object itemsAdderEntity;
     private BossBar bar;
     private BukkitTask hudTask;
-    private Component hudTitle = Component.empty();
-    private Component hudSub = Component.empty();
     private Component hudBar = Component.empty();
 
     public GuideSession(ServerGuidePlugin plugin, Player player) {
@@ -132,18 +130,26 @@ public final class GuideSession {
 
     private void showHud(Step step) {
         FileConfiguration cfg = plugin.getConfig();
-        var tag = Placeholder.unparsed("player", player.getName());
+        String portrait = plugin.fontImage(cfg.getString("hud.portrait-id", "guide:guide_girl"));
+        String bubble = plugin.fontImage(String.format(
+                cfg.getString("hud.bubble-id-pattern", "guide:bubble_%d"), index + 1));
 
-        String images = cfg.getString("hud.portrait", "") + cfg.getString("hud.gap", "")
-                + cfg.getString("hud.bubble", "");
-        hudTitle = MM.deserialize(plugin.replaceFontImages(images));
-
-        String shift = cfg.getString("hud.text-shift", "");
-        String l1 = step.text().size() > 0 ? step.text().get(0) : "";
-        String l2 = step.text().size() > 1 ? step.text().get(1) : "";
-        hudSub = MM.deserialize(plugin.replaceFontImages(shift + "<white>" + l1), tag);
-        hudBar = MM.deserialize(plugin.replaceFontImages(shift + "<white>" + l2), tag);
-
+        if (portrait == null || bubble == null) {
+            // images missing (new step without generated bubble, or pack not loaded) -> plain text
+            hudBar = MM.deserialize("<gold>Guide: <white>" + String.join(" ", step.text()),
+                    Placeholder.unparsed("player", player.getName()));
+        } else {
+            int gap = cfg.getInt("hud.gap", -14);
+            StringBuilder raw = new StringBuilder("<white>").append(portrait)
+                    .append(plugin.offset(gap)).append(bubble);
+            if (cfg.getBoolean("hud.anchor-left", true)) {
+                // the action bar is centred, so a trailing space pushes the whole picture to the left edge
+                int used = cfg.getInt("hud.portrait-width", 110) + gap + cfg.getInt("hud.bubble-width", 150);
+                int trail = cfg.getInt("hud.screen-width", 480) - used - 2 * cfg.getInt("hud.margin", 2);
+                if (trail > 0) raw.append(plugin.offset(trail));
+            }
+            hudBar = MM.deserialize(raw.toString());
+        }
         sendHud();
         if (hudTask == null) {
             hudTask = Bukkit.getScheduler().runTaskTimer(plugin, this::sendHud, 20L, 20L);
@@ -152,8 +158,6 @@ public final class GuideSession {
 
     private void sendHud() {
         if (!player.isOnline()) return;
-        player.showTitle(Title.title(hudTitle, hudSub,
-                Title.Times.times(Duration.ZERO, Duration.ofMillis(1500), Duration.ZERO)));
         player.sendActionBar(hudBar);
     }
 

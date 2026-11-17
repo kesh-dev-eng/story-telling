@@ -15,6 +15,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -30,6 +31,7 @@ public final class ServerGuidePlugin extends JavaPlugin implements Listener, Tab
     private final List<Step> steps = new ArrayList<>();
     private final Set<UUID> pending = new HashSet<>();
     private final Set<UUID> completed = new HashSet<>();
+    private final Set<UUID> awaitingPack = new HashSet<>();
     private File dataFile;
     private YamlConfiguration data;
 
@@ -124,6 +126,43 @@ public final class ServerGuidePlugin extends JavaPlugin implements Listener, Tab
         }
     }
 
+    private final Set<String> warnedImages = new HashSet<>();
+
+    /** Returns the characters of an ItemsAdder font image ("namespace:id"), or null if it is not loaded. */
+    public String fontImage(String id) {
+        if (!itemsAdderPresent() || id == null || id.isBlank()) return null;
+        try {
+            Class<?> c = Class.forName("dev.lone.itemsadder.api.FontImages.FontImageWrapper");
+            Object w = c.getConstructor(String.class).newInstance(id);
+            Object r = c.getMethod("getString").invoke(w);
+            if (r != null && !r.toString().isBlank() && !r.toString().contains(":")) return r.toString();
+        } catch (Throwable ignored) {
+        }
+        // fallback: placeholder form
+        String name = id.contains(":") ? id.substring(id.indexOf(':') + 1) : id;
+        for (String ph : new String[]{":" + id + ":", ":" + name + ":"}) {
+            String r = replaceFontImages(ph);
+            if (r != null && !r.equals(ph)) return r;
+        }
+        if (warnedImages.add(id)) {
+            getLogger().warning("ItemsAdder font image '" + id + "' not found. Did you copy the 'guide' folder to "
+                    + "plugins/ItemsAdder/contents/ and run /iazip ?");
+        }
+        return null;
+    }
+
+    /** ItemsAdder spacing placeholder, e.g. offset(-100) -> ":offset_-100:" (converted to the real characters). */
+    public String offset(int px) {
+        StringBuilder sb = new StringBuilder();
+        int left = Math.abs(px), sign = px < 0 ? -1 : 1;
+        while (left > 0) {                       // split big values into chunks of max 60
+            int chunk = Math.min(60, left);
+            sb.append(replaceFontImages(":offset_" + (sign * chunk) + ":"));
+            left -= chunk;
+        }
+        return sb.toString();
+    }
+
     /** Makes the guide NPC visible only to the player who is doing the tutorial. */
     public void hideFromOthers(Player owner, Entity npc) {
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -177,9 +216,34 @@ public final class ServerGuidePlugin extends JavaPlugin implements Listener, Tab
                 || (!onlyNew && !completed.contains(p.getUniqueId()));
         if (should) {
             long delay = getConfig().getLong("auto-start.delay-seconds", 3) * 20L;
-            Bukkit.getScheduler().runTaskLater(this, () -> {
-                if (p.isOnline()) startGuide(p);
-            }, delay);
+            boolean waitPack = getConfig().getBoolean("auto-start.wait-for-resource-pack", true)
+                    && getConfig().getBoolean("hud.enabled", true) && itemsAdderPresent();
+            if (waitPack) {
+                // start as soon as the resource pack is loaded, or after max-wait-seconds at the latest
+                awaitingPack.add(p.getUniqueId());
+                long max = getConfig().getLong("auto-start.max-wait-seconds", 20) * 20L;
+                Bukkit.getScheduler().runTaskLater(this, () -> {
+                    if (awaitingPack.remove(p.getUniqueId())) autoStart(p);
+                }, max);
+            } else {
+                Bukkit.getScheduler().runTaskLater(this, () -> autoStart(p), delay);
+            }
+        }
+    }
+
+    private void autoStart(Player p) {
+        if (p.isOnline() && !sessions.containsKey(p.getUniqueId()) && !completed.contains(p.getUniqueId())) {
+            startGuide(p);
+        }
+    }
+
+    @EventHandler
+    public void onPack(PlayerResourcePackStatusEvent e) {
+        if (e.getStatus() != PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED) return;
+        Player p = e.getPlayer();
+        if (awaitingPack.remove(p.getUniqueId())) {
+            long delay = getConfig().getLong("auto-start.delay-seconds", 3) * 20L;
+            Bukkit.getScheduler().runTaskLater(this, () -> autoStart(p), delay);
         }
     }
 
@@ -195,6 +259,7 @@ public final class ServerGuidePlugin extends JavaPlugin implements Listener, Tab
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
+        awaitingPack.remove(e.getPlayer().getUniqueId());
         GuideSession s = sessions.remove(e.getPlayer().getUniqueId());
         if (s != null) s.end();
     }
@@ -220,6 +285,7 @@ public final class ServerGuidePlugin extends JavaPlugin implements Listener, Tab
                     sender.sendMessage(MM.deserialize("<red>Player not online."));
                 } else {
                     completed.remove(t.getUniqueId());
+                    pending.add(t.getUniqueId());   // shows again on next join
                     saveData();
                     sender.sendMessage(MM.deserialize("<green>Guide reset for <name>.",
                             Placeholder.unparsed("name", t.getName())));

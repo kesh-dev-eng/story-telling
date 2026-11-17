@@ -4,6 +4,8 @@ auto-start:
   enabled: true
   only-new-players: true      # true = only players joining for the first time (+ unfinished ones)
   delay-seconds: 3
+  wait-for-resource-pack: true   # HUD images need the ItemsAdder pack: wait until it is loaded
+  max-wait-seconds: 20           # ...but never wait longer than this
 
 character:
   name: "<gold><bold>Guide"
@@ -13,15 +15,20 @@ character:
   itemsadder-id: "guide:guide_npc"
   distance: 2.5               # blocks in front of the player
 
-# HUD mode = a picture of the guide + speech bubble drawn on the player's screen (like Clash of Clans).
-# Needs ItemsAdder + the font images from the 'itemsadder-pack' folder. false = 3D NPC in the world.
+# HUD mode = guide picture (bottom-left) + cloud speech bubble drawn on the player's screen.
+# Needs ItemsAdder + the 'guide' folder from 'itemsadder-pack'. false = 3D NPC in the world.
+# The text of each step is baked into its own bubble image by tools/generate_bubbles.py
+# -> after editing steps run:  python tools/generate_bubbles.py  then copy the pack and /iazip
 hud:
   enabled: true
-  portrait: ":offset_-190::guide_girl:"     # guide picture (left side)
-  gap: ":offset_-8:"
-  bubble: ":guide_bubble:"                  # cloud / speech bubble
-  text-shift: ":offset_-260:"               # moves the text back into the bubble - tune this
-  # Text: dialog line 1 shows in the subtitle, line 2 in the action bar (so keep 2 short lines per step)
+  portrait-id: "guide:guide_girl"          # your character picture
+  bubble-id-pattern: "guide:bubble_%d"     # bubble_1, bubble_2 ... one per step
+  gap: -14                                 # bubble overlaps the character by this many GUI pixels
+  portrait-width: 110                      # = scale_ratio of guide_girl in guide_hud.yml
+  bubble-width: 150
+  anchor-left: true                        # push the picture to the left edge of the screen
+  screen-width: 480                        # YOUR screen width / GUI scale (1920 / 4 = 480). Tune this.
+  margin: 2
 
 ui:
   show-bossbar: true
@@ -55,24 +62,18 @@ steps:
   - title: "<gold>Welcome!"
     sound: "entity.villager.yes"
     text:
-      - "Hey <player>! Welcome to our server."
-      - "I'm your guide. I'll show you around step by step."
+      - "Hey <player>! Welcome to our server!"
   - sound: "entity.villager.trade"
     text:
-      - "First, the rules: be kind, no griefing, no cheating."
-      - "Read them any time with <yellow>/rules</yellow>."
+      - "Rules: be kind, no griefing. See /rules."
   - text:
-      - "Protect your builds by claiming land."
-      - "Use a golden shovel to mark your area."
+      - "Claim land with a golden shovel."
   - text:
-      - "Need money? Sell items at <yellow>/shop</yellow>"
-      - "and check your balance with <yellow>/bal</yellow>."
+      - "Sell items at /shop, check money with /bal."
   - text:
-      - "Want to travel? Use <yellow>/warp</yellow> and <yellow>/home</yellow>."
-      - "Set your home with <yellow>/sethome</yellow>."
+      - "Travel with /warp and /home."
   - sound: "entity.player.levelup"
     commands:
       - "give <player> cooked_beef 16"
     text:
-      - "That's it, <player>! Here's some food to start."
-      - "Have fun and good luck!"
+      - "That's all! Here's some food. Have fun!"
