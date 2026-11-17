@@ -15,6 +15,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -180,6 +181,16 @@ public final class ServerGuidePlugin extends JavaPlugin implements Listener, Tab
                 if (p.isOnline()) startGuide(p);
             }, delay);
         }
+    }
+
+    /** F key = next dialog, Shift+F = skip the guide (HUD mode). */
+    @EventHandler
+    public void onSwap(PlayerSwapHandItemsEvent e) {
+        Player p = e.getPlayer();
+        GuideSession s = sessions.get(p.getUniqueId());
+        if (s == null || !getConfig().getBoolean("hud.enabled", true)) return;
+        e.setCancelled(true);
+        if (p.isSneaking()) finishSession(p, false); else s.next();
     }
 
     @EventHandler

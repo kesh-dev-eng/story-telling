@@ -1,0 +1,14 @@
+info:
+  namespace: guide
+
+# scale_ratio = image height in pixels, y_position = vertical offset (negative = lower on screen).
+# Tune these two numbers until it sits where you want, then run /iazip.
+font_images:
+  guide_girl:
+    path: "font/guide_girl.png"
+    scale_ratio: 96
+    y_position: -20
+  guide_bubble:
+    path: "font/guide_bubble.png"
+    scale_ratio: 56
+    y_position: -20

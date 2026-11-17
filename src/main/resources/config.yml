@@ -13,6 +13,16 @@ character:
   itemsadder-id: "guide:guide_npc"
   distance: 2.5               # blocks in front of the player
 
+# HUD mode = a picture of the guide + speech bubble drawn on the player's screen (like Clash of Clans).
+# Needs ItemsAdder + the font images from the 'itemsadder-pack' folder. false = 3D NPC in the world.
+hud:
+  enabled: true
+  portrait: ":offset_-190::guide_girl:"     # guide picture (left side)
+  gap: ":offset_-8:"
+  bubble: ":guide_bubble:"                  # cloud / speech bubble
+  text-shift: ":offset_-260:"               # moves the text back into the bubble - tune this
+  # Text: dialog line 1 shows in the subtitle, line 2 in the action bar (so keep 2 short lines per step)
+
 ui:
   show-bossbar: true
   bossbar-title: "<yellow>Server Guide <gray>- Step <step>/<total>"

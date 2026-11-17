@@ -15,6 +15,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.util.Vector;
 
+import org.bukkit.scheduler.BukkitTask;
+
 import java.time.Duration;
 import java.util.List;
 
@@ -28,6 +30,10 @@ public final class GuideSession {
     private Entity npc;
     private Object itemsAdderEntity;
     private BossBar bar;
+    private BukkitTask hudTask;
+    private Component hudTitle = Component.empty();
+    private Component hudSub = Component.empty();
+    private Component hudBar = Component.empty();
 
     public GuideSession(ServerGuidePlugin plugin, Player player) {
         this.plugin = plugin;
@@ -60,6 +66,12 @@ public final class GuideSession {
 
     public void end() {
         removeNpc();
+        if (hudTask != null) {
+            hudTask.cancel();
+            hudTask = null;
+            player.clearTitle();
+            player.sendActionBar(Component.empty());
+        }
         if (bar != null) {
             player.hideBossBar(bar);
             bar = null;
@@ -81,21 +93,27 @@ public final class GuideSession {
             }
         }
 
-        // place the guide in front of the player, looking at them
-        Vector dir = base.getDirection().setY(0);
-        if (dir.lengthSquared() < 0.01) dir = new Vector(0, 0, 1);
-        Location npcLoc = base.clone().add(dir.normalize().multiply(cfg.getDouble("character.distance", 2.5)));
-        npcLoc.setDirection(base.toVector().subtract(npcLoc.toVector()));
-        spawnNpc(npcLoc);
+        if (cfg.getBoolean("hud.enabled", true)) {
+            // picture + speech bubble drawn on the player's screen (no NPC in the world)
+            showHud(step);
+            player.sendMessage(buildButtons(index, steps.size()));
+        } else {
+            // place the guide in front of the player, looking at them
+            Vector dir = base.getDirection().setY(0);
+            if (dir.lengthSquared() < 0.01) dir = new Vector(0, 0, 1);
+            Location npcLoc = base.clone().add(dir.normalize().multiply(cfg.getDouble("character.distance", 2.5)));
+            npcLoc.setDirection(base.toVector().subtract(npcLoc.toVector()));
+            spawnNpc(npcLoc);
 
-        // dialog box in chat
-        player.sendMessage(buildDialog(step, index, steps.size()));
+            // dialog box in chat
+            player.sendMessage(buildDialog(step, index, steps.size()));
+        }
 
         // extras
         if (step.sound() != null && !step.sound().isBlank()) {
             player.playSound(player.getLocation(), step.sound(), 1f, 1f);
         }
-        if (step.title() != null && !step.title().isBlank()) {
+        if (!cfg.getBoolean("hud.enabled", true) && step.title() != null && !step.title().isBlank()) {
             player.showTitle(Title.title(
                     MM.deserialize(step.title()), Component.empty(),
                     Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(2), Duration.ofMillis(500))));
@@ -107,6 +125,53 @@ public final class GuideSession {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("<player>", player.getName()));
             }
         }
+    }
+
+
+    // ---------------- HUD (screen overlay) ----------------
+
+    private void showHud(Step step) {
+        FileConfiguration cfg = plugin.getConfig();
+        var tag = Placeholder.unparsed("player", player.getName());
+
+        String images = cfg.getString("hud.portrait", "") + cfg.getString("hud.gap", "")
+                + cfg.getString("hud.bubble", "");
+        hudTitle = MM.deserialize(plugin.replaceFontImages(images));
+
+        String shift = cfg.getString("hud.text-shift", "");
+        String l1 = step.text().size() > 0 ? step.text().get(0) : "";
+        String l2 = step.text().size() > 1 ? step.text().get(1) : "";
+        hudSub = MM.deserialize(plugin.replaceFontImages(shift + "<white>" + l1), tag);
+        hudBar = MM.deserialize(plugin.replaceFontImages(shift + "<white>" + l2), tag);
+
+        sendHud();
+        if (hudTask == null) {
+            hudTask = Bukkit.getScheduler().runTaskTimer(plugin, this::sendHud, 20L, 20L);
+        }
+    }
+
+    private void sendHud() {
+        if (!player.isOnline()) return;
+        player.showTitle(Title.title(hudTitle, hudSub,
+                Title.Times.times(Duration.ZERO, Duration.ofMillis(1500), Duration.ZERO)));
+        player.sendActionBar(hudBar);
+    }
+
+    private Component buildButtons(int i, int total) {
+        FileConfiguration cfg = plugin.getConfig();
+        boolean last = i + 1 >= total;
+        StringBuilder sb = new StringBuilder();
+        if (i > 0) {
+            sb.append("<click:run_command:'/guide back'>").append(cfg.getString("ui.back", "[Back]")).append("</click> ");
+        }
+        sb.append("<click:run_command:'/guide next'>")
+                .append(last ? cfg.getString("ui.finish", "[Finish]") : cfg.getString("ui.next", "[Next]"))
+                .append("</click> ");
+        if (!last) {
+            sb.append("<click:run_command:'/guide skip'>").append(cfg.getString("ui.skip", "[Skip]")).append("</click>");
+        }
+        sb.append(" <dark_gray>(F = next, Shift+F = skip)");
+        return MM.deserialize(sb.toString());
     }
 
     private Component buildDialog(Step step, int i, int total) {
