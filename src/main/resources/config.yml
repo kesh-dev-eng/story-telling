@@ -1,0 +1,45 @@
+# ---------------------------------------------------------------
+#  StoryTeller - config.yml
+#  Text uses MiniMessage: <gold>, <bold>, <gradient:#f6d365:#fda085>...</gradient>
+# ---------------------------------------------------------------
+
+narrator:
+  # Name shown on her portrait and in the title popup
+  name: "<gradient:#f6d365:#fda085>Lyra the Chronicler</gradient>"
+  # Small text under the name in the title popup
+  title-subtext: "<gray>has a message for you"
+  # Show the big title popup when she appears
+  show-title: true
+  # Sound played when she appears (leave "" for none)
+  open-sound: "minecraft:entity.experience_orb.pickup"
+  # Lines shown when hovering her portrait
+  lore:
+    - "<gray>Keeper of this realm's chronicle."
+
+  # Her picture. Pick ONE type:
+  #   skin       -> a Minecraft player head (use uuid OR texture below)
+  #   itemsadder -> a custom ItemsAdder item (your own drawn picture)
+  #   material   -> any plain vanilla item
+  portrait:
+    type: skin
+    # Skin by account UUID (placeholder: change it to the skin you want)
+    uuid: "069a79f4-44e9-4726-a5be-fca90e38aaf5"
+    # Skin by texture value (Base64 from minecraft-heads.com "Value" field).
+    # If this is filled in, it is used instead of uuid and needs no Mojang lookup.
+    texture: ""
+    # Used when type is "material"
+    material: PAPER
+    # Used when type is "itemsadder"  (namespace:item_id)
+    itemsadder-id: "storyteller:lyra_portrait"
+
+delivery:
+  # Seconds to wait after joining before she appears
+  join-delay-seconds: 4
+  # Wait until the player has logged in with AuthMe (if AuthMe is installed)
+  wait-for-authme: true
+  # If a player closes the popup without pressing Finish, she waits this long before returning
+  reopen-cooldown-minutes: 10
+
+triggers:
+  # Story every player gets the first time they join THIS server ("" to disable)
+  first-join-story: "welcome"

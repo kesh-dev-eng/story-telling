@@ -1,0 +1,21 @@
+name: StoryTeller
+version: '${project.version}'
+main: dev.kesh.storyteller.StoryTellerPlugin
+api-version: '26.1.2'
+author: Kesh
+description: Lyra the Chronicler appears with story messages and step-by-step guidance.
+softdepend: [ItemsAdder, AuthMe]
+
+commands:
+  story:
+    description: Hear or replay Lyra's stories
+    usage: /story [list|replay <id>]
+    aliases: [chronicle]
+
+permissions:
+  storyteller.use:
+    description: Use /story list and /story replay
+    default: true
+  storyteller.admin:
+    description: Send stories, preview them and reload the plugin
+    default: op
