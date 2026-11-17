@@ -1,45 +1,68 @@
-# ---------------------------------------------------------------
-#  StoryTeller - config.yml
-#  Text uses MiniMessage: <gold>, <bold>, <gradient:#f6d365:#fda085>...</gradient>
-# ---------------------------------------------------------------
+# ServerGuide config. Text uses MiniMessage (<gold>, <green>, <bold>, <player> ...)
 
-narrator:
-  # Name shown on her portrait and in the title popup
-  name: "<gradient:#f6d365:#fda085>Lyra the Chronicler</gradient>"
-  # Small text under the name in the title popup
-  title-subtext: "<gray>has a message for you"
-  # Show the big title popup when she appears
-  show-title: true
-  # Sound played when she appears (leave "" for none)
-  open-sound: "minecraft:entity.experience_orb.pickup"
-  # Lines shown when hovering her portrait
-  lore:
-    - "<gray>Keeper of this realm's chronicle."
+auto-start:
+  enabled: true
+  only-new-players: true      # true = only players joining for the first time (+ unfinished ones)
+  delay-seconds: 3
 
-  # Her picture. Pick ONE type:
-  #   skin       -> a Minecraft player head (use uuid OR texture below)
-  #   itemsadder -> a custom ItemsAdder item (your own drawn picture)
-  #   material   -> any plain vanilla item
-  portrait:
-    type: skin
-    # Skin by account UUID (placeholder: change it to the skin you want)
-    uuid: "069a79f4-44e9-4726-a5be-fca90e38aaf5"
-    # Skin by texture value (Base64 from minecraft-heads.com "Value" field).
-    # If this is filled in, it is used instead of uuid and needs no Mojang lookup.
-    texture: ""
-    # Used when type is "material"
-    material: PAPER
-    # Used when type is "itemsadder"  (namespace:item_id)
-    itemsadder-id: "storyteller:lyra_portrait"
+character:
+  name: "<gold><bold>Guide"
+  # MANNEQUIN (Steve-style player look), VILLAGER, ARMOR_STAND, any EntityType, or ITEMSADDER
+  type: MANNEQUIN
+  # Only used when type: ITEMSADDER -> your custom entity id (namespace:id)
+  itemsadder-id: "guide:guide_npc"
+  distance: 2.5               # blocks in front of the player
 
-delivery:
-  # Seconds to wait after joining before she appears
-  join-delay-seconds: 4
-  # Wait until the player has logged in with AuthMe (if AuthMe is installed)
-  wait-for-authme: true
-  # If a player closes the popup without pressing Finish, she waits this long before returning
-  reopen-cooldown-minutes: 10
+ui:
+  show-bossbar: true
+  bossbar-title: "<yellow>Server Guide <gray>- Step <step>/<total>"
+  back: "<gray>[◀ Back]"
+  next: "<green>[Next ▶]"
+  finish: "<gold>[Finish ✔]"
+  skip: "<red>[Skip All ✖]"
+  # ItemsAdder font images (e.g. a portrait + speech bubble) can be put in header-prefix
+  # or any dialog text; they are converted automatically when ItemsAdder is installed.
+  header-prefix: ""
 
-triggers:
-  # Story every player gets the first time they join THIS server ("" to disable)
-  first-join-story: "welcome"
+give-rewards-on-skip: false
+
+# Runs once when the player finishes the whole guide (console commands, <player> replaced)
+finish-commands:
+  - "give <player> bread 8"
+  # ItemsAdder example: "iagive <player> myitems:starter_kit"
+
+messages:
+  finished: "<green>Guide completed! Enjoy the server. Type <yellow>/guide</yellow> any time to replay it."
+  skipped: "<yellow>Guide skipped. Type <gold>/guide</gold> any time to replay it."
+  no-session: "<red>You are not in the guide. Type <yellow>/guide</yellow> to start."
+  reloaded: "<green>ServerGuide reloaded."
+
+# Each step = one dialog box.
+# text: list of lines | sound (optional) | title (optional big title)
+# location: "world,x,y,z[,yaw,pitch]" (optional, teleports player + guide there)
+# commands: console commands run when the step is shown (moving forward)
+steps:
+  - title: "<gold>Welcome!"
+    sound: "entity.villager.yes"
+    text:
+      - "Hey <player>! Welcome to our server."
+      - "I'm your guide. I'll show you around step by step."
+  - sound: "entity.villager.trade"
+    text:
+      - "First, the rules: be kind, no griefing, no cheating."
+      - "Read them any time with <yellow>/rules</yellow>."
+  - text:
+      - "Protect your builds by claiming land."
+      - "Use a golden shovel to mark your area."
+  - text:
+      - "Need money? Sell items at <yellow>/shop</yellow>"
+      - "and check your balance with <yellow>/bal</yellow>."
+  - text:
+      - "Want to travel? Use <yellow>/warp</yellow> and <yellow>/home</yellow>."
+      - "Set your home with <yellow>/sethome</yellow>."
+  - sound: "entity.player.levelup"
+    commands:
+      - "give <player> cooked_beef 16"
+    text:
+      - "That's it, <player>! Here's some food to start."
+      - "Have fun and good luck!"

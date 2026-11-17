@@ -1,21 +1,15 @@
-name: StoryTeller
-version: '${project.version}'
-main: dev.kesh.storyteller.StoryTellerPlugin
-api-version: '26.1.2'
-author: Kesh
-description: Lyra the Chronicler appears with story messages and step-by-step guidance.
-softdepend: [ItemsAdder, AuthMe]
-
+name: ServerGuide
+version: 1.0.0
+main: dev.serverguide.ServerGuidePlugin
+api-version: '26.1'
+description: Step-by-step server tutorial with a guide NPC, dialog boxes and skip buttons.
+softdepend: [ItemsAdder]
 commands:
-  story:
-    description: Hear or replay Lyra's stories
-    usage: /story [list|replay <id>]
-    aliases: [chronicle]
-
+  guide:
+    description: Open or control the server guide
+    usage: /guide [start|next|back|skip|reload|reset <player>]
 permissions:
-  storyteller.use:
-    description: Use /story list and /story replay
+  serverguide.use:
     default: true
-  storyteller.admin:
-    description: Send stories, preview them and reload the plugin
+  serverguide.admin:
     default: op
